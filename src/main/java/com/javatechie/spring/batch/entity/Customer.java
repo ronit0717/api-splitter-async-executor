@@ -6,32 +6,45 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "CUSTOMERS_INFO")
+@Table(name = "customers_info")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class Customer {
 
     @Id
-    @Column(name = "CUSTOMER_ID")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private int id;
-    @Column(name = "FIRST_NAME")
+
+    @Column(name = "customer_id")
+    private int customerId;
+
+    @Column(name = "first_name")
     private String firstName;
-    @Column(name = "LAST_NAME")
+
+    @Column(name = "last_name")
     private String lastName;
-    @Column(name = "EMAIL")
+
+    @Column(name = "email")
     private String email;
-    @Column(name = "GENDER")
+
+    @Column(name = "gender")
     private String gender;
-    @Column(name = "CONTACT")
+
+    @Column(name = "contact")
     private String contactNo;
-    @Column(name = "COUNTRY")
+
+    @Column(name = "country")
     private String country;
-    @Column(name = "DOB")
+
+    @Column(name = "dob")
     private String dob;
 
 
