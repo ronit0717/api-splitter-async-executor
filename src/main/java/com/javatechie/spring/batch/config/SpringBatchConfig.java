@@ -1,81 +1,93 @@
 package com.javatechie.spring.batch.config;
 
+import com.javatechie.spring.batch.entity.BatchRequestEntityItem;
 import com.javatechie.spring.batch.entity.Customer;
-import com.javatechie.spring.batch.repository.CustomerRepository;
+import com.javatechie.spring.batch.repository.BatchRequestItemRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.launch.support.SimpleJobLauncher;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.item.data.RepositoryItemReader;
 import org.springframework.batch.item.data.RepositoryItemWriter;
-import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.context.annotation.Scope;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.util.StringUtils;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Configuration
 @EnableBatchProcessing
 @AllArgsConstructor
 public class SpringBatchConfig {
 
+    @Autowired
     private JobBuilderFactory jobBuilderFactory;
 
+    @Autowired
     private StepBuilderFactory stepBuilderFactory;
 
-    private CustomerRepository customerRepository;
+    @Autowired
+    private BatchRequestItemRepository batchRequestItemRepository;
 
+    @Autowired
+    private JobRepository jobRepository;
 
     @Bean
-    public FlatFileItemReader<Customer> reader() {
-        FlatFileItemReader<Customer> itemReader = new FlatFileItemReader<>();
-        itemReader.setResource(new FileSystemResource("src/main/resources/customers.csv"));
-        itemReader.setName("csvReader");
-        itemReader.setLinesToSkip(1);
-        itemReader.setLineMapper(lineMapper());
-        return itemReader;
-    }
-
-    private LineMapper<Customer> lineMapper() {
-        DefaultLineMapper<Customer> lineMapper = new DefaultLineMapper<>();
-
-        DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
-        lineTokenizer.setDelimiter(",");
-        lineTokenizer.setStrict(false);
-        lineTokenizer.setNames("customerId", "firstName", "lastName", "email", "gender", "contactNo", "country", "dob");
-
-        BeanWrapperFieldSetMapper<Customer> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
-        fieldSetMapper.setTargetType(Customer.class);
-
-        lineMapper.setLineTokenizer(lineTokenizer);
-        lineMapper.setFieldSetMapper(fieldSetMapper);
-        return lineMapper;
-
+    public BatchRequestItemProcessor processor() {
+        return new BatchRequestItemProcessor();
     }
 
     @Bean
-    public CustomerProcessor processor() {
-        return new CustomerProcessor();
-    }
-
-    @Bean
-    public RepositoryItemWriter<Customer> writer() {
-        RepositoryItemWriter<Customer> writer = new RepositoryItemWriter<>();
-        writer.setRepository(customerRepository);
+    public RepositoryItemWriter<BatchRequestEntityItem> writer() {
+        RepositoryItemWriter<BatchRequestEntityItem> writer = new RepositoryItemWriter<>();
+        writer.setRepository(batchRequestItemRepository);
         writer.setMethodName("save");
         return writer;
     }
 
     @Bean
-    public Step step1() {
-        return stepBuilderFactory.get("csv-step").<Customer, Customer>chunk(10)
-                .reader(reader())
+    @StepScope
+    public RepositoryItemReader<BatchRequestEntityItem> reader(@Value("#{jobParameters[batch_request_id]}") Long batchRequestId) {
+        RepositoryItemReader<BatchRequestEntityItem> reader = new RepositoryItemReader<>();
+        reader.setRepository(batchRequestItemRepository);
+        reader.setMethodName("findAllByBatchRequestId");
+        reader.setArguments(Collections.singletonList(batchRequestId));
+        reader.setPageSize(10000);
+        Map<String, Sort.Direction> map = new HashMap<>();
+        map.put("id", Sort.Direction.ASC);
+        reader.setSort(map);
+        return reader;
+    }
+
+    @Bean
+    public Step processBatchStep() {
+        return stepBuilderFactory.get("batch-step").<BatchRequestEntityItem, BatchRequestEntityItem>chunk(2)
+                .reader(reader(null))
                 .processor(processor())
                 .writer(writer())
                 .taskExecutor(taskExecutor())
@@ -84,16 +96,25 @@ public class SpringBatchConfig {
 
     @Bean
     public Job runJob() {
-        return jobBuilderFactory.get("importCustomers")
-                .flow(step1()).end().build();
+        return jobBuilderFactory.get("processBatch")
+                .flow(processBatchStep()).end().build();
 
     }
 
     @Bean
     public TaskExecutor taskExecutor() {
         SimpleAsyncTaskExecutor asyncTaskExecutor = new SimpleAsyncTaskExecutor();
-        asyncTaskExecutor.setConcurrencyLimit(10);
+        asyncTaskExecutor.setConcurrencyLimit(2);
         return asyncTaskExecutor;
+    }
+
+    @Bean(name = "batchJobLauncher")
+    public JobLauncher simpleJobLauncher() throws Exception {
+        SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
+        jobLauncher.setJobRepository(jobRepository);
+        jobLauncher.setTaskExecutor(new SimpleAsyncTaskExecutor());
+        jobLauncher.afterPropertiesSet();
+        return jobLauncher;
     }
 
 }
