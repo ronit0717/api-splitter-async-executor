@@ -1,6 +1,8 @@
 package com.javatechie.spring.batch.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.javatechie.spring.batch.enumeration.BatchRequestExecutionStatus;
+import com.javatechie.spring.batch.enumeration.BatchRequestItemExecutionStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +14,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EntityListeners;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -35,6 +39,10 @@ public class BatchRequestEntity {
    private long id;
 
    private Long jobExecutionId;
+
+   @Column(name = "status", length = 15, nullable = false)
+   @Enumerated(value = EnumType.STRING)
+   private BatchRequestExecutionStatus batchRequestExecutionStatus;
 
    @Column(nullable = false, updatable = false)
    @Temporal(TemporalType.TIMESTAMP)

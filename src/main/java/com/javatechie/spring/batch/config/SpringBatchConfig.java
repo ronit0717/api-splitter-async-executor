@@ -2,7 +2,9 @@ package com.javatechie.spring.batch.config;
 
 import com.javatechie.spring.batch.entity.BatchRequestEntityItem;
 import com.javatechie.spring.batch.entity.Customer;
+import com.javatechie.spring.batch.enumeration.BatchRequestItemExecutionStatus;
 import com.javatechie.spring.batch.repository.BatchRequestItemRepository;
+import com.javatechie.spring.batch.repository.BatchRequestRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -52,27 +54,45 @@ public class SpringBatchConfig {
     private StepBuilderFactory stepBuilderFactory;
 
     @Autowired
+    private BatchRequestRepository batchRequestRepository;
+
+    @Autowired
     private BatchRequestItemRepository batchRequestItemRepository;
 
     @Autowired
     private JobRepository jobRepository;
 
     @Bean
-    public BatchRequestItemProcessor processor() {
+    public BatchRequestItemProcessor batchRequestItemProcessor() {
         return new BatchRequestItemProcessor();
     }
 
     @Bean
-    public RepositoryItemWriter<BatchRequestEntityItem> writer() {
-        RepositoryItemWriter<BatchRequestEntityItem> writer = new RepositoryItemWriter<>();
-        writer.setRepository(batchRequestItemRepository);
-        writer.setMethodName("save");
-        return writer;
+    public BatchRequestRetryItemProcessor batchRequestRetryItemProcessor() {
+
+        return new BatchRequestRetryItemProcessor();
+    }
+
+    @Bean
+    public BatchRequestStepListener batchRequestStepListener() {
+
+        return new BatchRequestStepListener(batchRequestRepository, batchRequestItemRepository);
+    }
+
+    @Bean
+    public BatchRequestRetryJobListener batchRequestRetryJobListener() {
+
+        return new BatchRequestRetryJobListener();
+    }
+
+    @Bean
+    public BatchRequestItemWriter writer() {
+        return new BatchRequestItemWriter(batchRequestItemRepository);
     }
 
     @Bean
     @StepScope
-    public RepositoryItemReader<BatchRequestEntityItem> reader(@Value("#{jobParameters[batch_request_id]}") Long batchRequestId) {
+    public RepositoryItemReader<BatchRequestEntityItem> itemReader(@Value("#{jobParameters[batch_request_id]}") Long batchRequestId) {
         RepositoryItemReader<BatchRequestEntityItem> reader = new RepositoryItemReader<>();
         reader.setRepository(batchRequestItemRepository);
         reader.setMethodName("findAllByBatchRequestId");
@@ -84,20 +104,47 @@ public class SpringBatchConfig {
         return reader;
     }
 
-    @Bean
-    public Step processBatchStep() {
-        return stepBuilderFactory.get("batch-step").<BatchRequestEntityItem, BatchRequestEntityItem>chunk(2)
-                .reader(reader(null))
-                .processor(processor())
-                .writer(writer())
-                .taskExecutor(taskExecutor())
-                .build();
+    public RepositoryItemReader<BatchRequestEntityItem> retryItemReader() {
+        RepositoryItemReader<BatchRequestEntityItem> reader = new RepositoryItemReader<>();
+        reader.setRepository(batchRequestItemRepository);
+        reader.setMethodName("findAllByBatchRequestItemExecutionStatus");
+        reader.setArguments(Collections.singletonList(BatchRequestItemExecutionStatus.RETRY));
+        reader.setPageSize(10);
+        Map<String, Sort.Direction> map = new HashMap<>();
+        //TODO: Sort by least retry Delay
+        map.put("id", Sort.Direction.ASC);
+        reader.setSort(map);
+        return reader;
     }
 
     @Bean
+    public Step processBatchStep() {
+
+        return stepBuilderFactory.get("batch-step").<BatchRequestEntityItem, BatchRequestEntityItem>chunk(2)
+              .reader(itemReader(null)).processor(batchRequestItemProcessor()).writer(writer()).taskExecutor(taskExecutor())
+              .listener(batchRequestStepListener()).build();
+    }
+
+    @Bean
+    public Step processRetryBatchStep() {
+
+        return stepBuilderFactory.get("retry-batch-step").<BatchRequestEntityItem, BatchRequestEntityItem>chunk(2)
+              .reader(retryItemReader()).processor(batchRequestRetryItemProcessor()).writer(writer()).taskExecutor(taskExecutor())
+              .listener(batchRequestStepListener()).build();
+    }
+
+    @Bean(name="batchJob")
     public Job runJob() {
         return jobBuilderFactory.get("processBatch")
                 .flow(processBatchStep()).end().build();
+
+    }
+
+    @Bean(name="retryJob")
+    public Job runRetryJob() {
+        return jobBuilderFactory.get("processRetryBatch")
+              .listener(batchRequestRetryJobListener())
+              .flow(processRetryBatchStep()).end().build();
 
     }
 

@@ -2,12 +2,11 @@ package com.javatechie.spring.batch.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javatechie.spring.batch.entity.BatchRequestEntityItem;
-import com.javatechie.spring.batch.enumeration.ExecutionStatus;
+import com.javatechie.spring.batch.enumeration.BatchRequestItemExecutionStatus;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
@@ -30,10 +29,18 @@ public class BatchRequestItemProcessor implements ItemProcessor<BatchRequestEnti
         item.setHttpResponseCode(Integer.toString(response.getStatusCode().value()));
         item.setHttpResponseBody(response.getBody());
         item.setHttpResponseHeader(objectMapper.writeValueAsString(response.getHeaders()));
+
+        //TODO: Retry logic handling
+
         if (response.getStatusCode().is2xxSuccessful()) {
-            item.setExecutionStatus(ExecutionStatus.SUCCESS);
+//            if (item.getId() % 3 == 0) {
+//                item.setBatchRequestItemExecutionStatus(BatchRequestItemExecutionStatus.RETRY);
+//            } else {
+//                item.setBatchRequestItemExecutionStatus(BatchRequestItemExecutionStatus.SUCCESS);
+//            }
+            item.setBatchRequestItemExecutionStatus(BatchRequestItemExecutionStatus.SUCCESS); //temp comment
         } else {
-            item.setExecutionStatus(ExecutionStatus.ERROR);
+            item.setBatchRequestItemExecutionStatus(BatchRequestItemExecutionStatus.ERROR);
         }
         return item;
     }

@@ -1,7 +1,7 @@
 package com.javatechie.spring.batch.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.javatechie.spring.batch.enumeration.ExecutionStatus;
+import com.javatechie.spring.batch.enumeration.BatchRequestItemExecutionStatus;
 import com.javatechie.spring.batch.enumeration.HttpRequestMethod;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +12,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.Column;
-import javax.persistence.Embeddable;
 import javax.persistence.Entity;
 import javax.persistence.EntityListeners;
 import javax.persistence.EnumType;
@@ -52,12 +51,15 @@ public class BatchRequestEntityItem {
    @Column(columnDefinition = "TEXT")
    private String httpRequestHeader;
 
+   @Column
+   private Integer retryDelay;
+
    @Column(columnDefinition = "TEXT", nullable = false)
    private String httpRequestBody;
 
-   @Column(length = 15, nullable = false)
+   @Column(name = "status", length = 15, nullable = false)
    @Enumerated(value = EnumType.STRING)
-   private ExecutionStatus executionStatus;
+   private BatchRequestItemExecutionStatus batchRequestItemExecutionStatus;
 
    @Column(length = 3)
    private String httpResponseCode;

@@ -1,7 +1,7 @@
 package com.javatechie.spring.batch.dto;
 
 import com.javatechie.spring.batch.entity.BatchRequestEntityItem;
-import com.javatechie.spring.batch.enumeration.ExecutionStatus;
+import com.javatechie.spring.batch.enumeration.BatchRequestItemExecutionStatus;
 import com.javatechie.spring.batch.enumeration.HttpRequestMethod;
 import lombok.Data;
 
@@ -14,7 +14,7 @@ public class BatchEntity {
    private String httpRequestUri;
    private String httpRequestHeader;
    private String httpRequestBody;
-   private ExecutionStatus executionStatus;
+   private BatchRequestItemExecutionStatus batchRequestItemExecutionStatus;
    private String httpResponseCode;
    private String httpResponseHeader;
    private String httpResponseBody;
@@ -27,7 +27,7 @@ public class BatchEntity {
       this.httpRequestUri = item.getHttpRequestUri();
       this.httpRequestHeader = item.getHttpRequestHeader();
       this.httpRequestBody = item.getHttpRequestBody();
-      this.executionStatus = item.getExecutionStatus();
+      this.batchRequestItemExecutionStatus = item.getBatchRequestItemExecutionStatus();
       this.httpResponseCode = item.getHttpResponseCode();
       this.httpResponseHeader = item.getHttpResponseHeader();
       this.httpResponseBody = item.getHttpResponseBody();
