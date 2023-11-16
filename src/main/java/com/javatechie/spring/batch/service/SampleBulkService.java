@@ -9,7 +9,8 @@ import com.javatechie.spring.batch.dto.SampleResponse;
 import com.javatechie.spring.batch.dto.SampleResponseItem;
 import com.javatechie.spring.batch.entity.BatchRequestEntity;
 import com.javatechie.spring.batch.entity.BatchRequestEntityItem;
-import com.javatechie.spring.batch.enumeration.ExecutionStatus;
+import com.javatechie.spring.batch.enumeration.BatchRequestExecutionStatus;
+import com.javatechie.spring.batch.enumeration.BatchRequestItemExecutionStatus;
 import com.javatechie.spring.batch.enumeration.HttpRequestMethod;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -17,7 +18,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -75,7 +75,8 @@ public class SampleBulkService {
    private BatchRequest buildBatchRequest(List<SampleRequest> sampleRequests) {
 
       List<BatchRequestEntityItem> batchRequestEntityItems = null;
-      BatchRequestEntity batchRequestEntity = BatchRequestEntity.builder().build();
+      BatchRequestEntity batchRequestEntity = BatchRequestEntity.builder()
+            .batchRequestExecutionStatus(BatchRequestExecutionStatus.IN_PROGRESS).build();
       List<String> stringSampleRequests = null;
       try {
          stringSampleRequests = stringify(sampleRequests);
@@ -87,7 +88,7 @@ public class SampleBulkService {
             BatchRequestEntityItem batchRequestEntityItem = BatchRequestEntityItem.builder()
                   .httpRequestMethod(HttpRequestMethod.POST)
                   .httpRequestUri("http://localhost:9191/sample/process/chunk").httpRequestHeader(headers)
-                  .executionStatus(ExecutionStatus.PENDING).httpRequestBody(payload).build();
+                  .batchRequestItemExecutionStatus(BatchRequestItemExecutionStatus.PENDING).httpRequestBody(payload).build();
             batchRequestEntityItems.add(batchRequestEntityItem);
          }
          return BatchRequest.builder().batchRequestEntity(batchRequestEntity)

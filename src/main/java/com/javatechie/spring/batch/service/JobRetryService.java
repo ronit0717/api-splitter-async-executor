@@ -1,10 +1,5 @@
 package com.javatechie.spring.batch.service;
 
-import com.javatechie.spring.batch.dto.BatchRequest;
-import com.javatechie.spring.batch.entity.BatchRequestEntity;
-import com.javatechie.spring.batch.entity.BatchRequestEntityItem;
-import com.javatechie.spring.batch.repository.BatchRequestItemRepository;
-import com.javatechie.spring.batch.repository.BatchRequestRepository;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
@@ -20,41 +15,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Date;
 
 @Service
-public class BatchService {
-
-   @Autowired
-   private BatchRequestRepository batchRequestRepository;
-
-   @Autowired
-   private BatchRequestItemRepository batchRequestItemRepository;
+public class JobRetryService {
 
    @Autowired
    @Qualifier("batchJobLauncher")
    private JobLauncher jobLauncher;
+
    @Autowired
-   @Qualifier("batchJob")
+   @Qualifier("retryJob")
    private Job job;
 
    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-   public BatchRequestEntity process(BatchRequest batchRequest) {
+   public JobExecution processRetryBatch() {
 
-      BatchRequestEntity batchRequestEntity =  batchRequestRepository.save(batchRequest.getBatchRequestEntity());
-      for (BatchRequestEntityItem item : batchRequest.getBatchRequestEntityItems()) {
-         item.setBatchRequestId(batchRequestEntity.getId());
-      }
-      batchRequestItemRepository.saveAll(batchRequest.getBatchRequestEntityItems());
-      long jobExecutionId = processBatch(batchRequestEntity);
-      batchRequestEntity.setJobExecutionId(jobExecutionId);
-      batchRequestEntity = batchRequestRepository.save(batchRequest.getBatchRequestEntity());
-      return batchRequestEntity;
-   }
-
-   private long processBatch(BatchRequestEntity batchRequest) {
-
-      JobParameters jobParameters = new JobParametersBuilder().addLong("batch_request_id", batchRequest.getId())
+      JobParameters jobParameters = new JobParametersBuilder().addLong("retry_job_timestamp", new Date().getTime())
             .toJobParameters();
       JobExecution jobExecution = null;
       try {
@@ -64,9 +41,8 @@ public class BatchService {
          e.printStackTrace();
       } catch (Exception e) {
          e.printStackTrace();
-         throw new RuntimeException("Process Batch failed with error", e);
+         throw new RuntimeException("Process Retry Batch failed with error", e);
       }
-      return jobExecution.getId();
+      return jobExecution;
    }
-
 }

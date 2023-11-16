@@ -2,6 +2,7 @@ package com.javatechie.spring.batch.controller;
 
 import com.javatechie.spring.batch.dto.BatchResponse;
 import com.javatechie.spring.batch.service.JobExplorerService;
+import com.javatechie.spring.batch.service.JobRetryService;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
@@ -29,10 +30,13 @@ public class JobController {
    @Autowired
    private JobExplorerService jobExplorerService;
 
+   @Autowired
+   private JobRetryService jobRetryService;
+
    @GetMapping("status")
    public String getJobData(@RequestParam("executionId") long id) {
 
-      return jobExplorerService.getJobStatusByJobId(id);
+      return jobExplorerService.getJobExecutionStatusByJobId(id);
    }
 
    @GetMapping("test")
@@ -46,5 +50,13 @@ public class JobController {
 
       BatchResponse response = jobExplorerService.getJobDetailsByJobId(id);
       return ResponseEntity.ok(response);
+   }
+
+   @PostMapping("retry")
+   public ResponseEntity<String> retryJob() {
+
+      JobExecution jobExecution = jobRetryService.processRetryBatch();
+      Long jobExecutionId = jobExecution == null ? null : jobExecution.getJobId();
+      return ResponseEntity.ok("Job retried successfully. Job ID: " + jobExecutionId);
    }
 }

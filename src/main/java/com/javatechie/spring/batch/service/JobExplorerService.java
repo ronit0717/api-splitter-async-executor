@@ -27,18 +27,20 @@ public class JobExplorerService {
    @Autowired
    private BatchRequestRepository batchRequestRepository;
 
-   public String getJobStatusByJobId(Long jobId) {
+   public String getJobExecutionStatusByJobId(Long jobId) {
 
       JobExecution jobExecution = jobExplorer.getJobExecution(jobId);
       System.out.println(jobExecution.toString());
       return jobExecution.getStatus().toString();
    }
 
+   //TODO: Add pageable support in interface
    public BatchResponse getJobDetailsByJobId(Long jobId) {
 
       BatchRequestEntity entity = batchRequestRepository.getById(jobId);
       JobExecution jobExecution = jobExplorer.getJobExecution(entity.getJobExecutionId());
-      Pageable pageable = PageRequest.of(0, Integer.MAX_VALUE, Sort.by(Sort.Direction.ASC, "id"));
+      //Pageable pageable = PageRequest.of(0, Integer.MAX_VALUE, Sort.by(Sort.Direction.ASC, "id"));
+      Pageable pageable = Pageable.unpaged();
       Page<BatchRequestEntityItem> batchRequestEntityItems = batchRequestItemRepository.findAllByBatchRequestId(jobId,
             pageable);
       return new BatchResponse(jobExecution, entity, batchRequestEntityItems);
