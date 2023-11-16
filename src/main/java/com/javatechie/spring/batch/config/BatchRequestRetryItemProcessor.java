@@ -21,6 +21,7 @@ public class BatchRequestRetryItemProcessor  implements ItemProcessor<BatchReque
       long itemId = item.getId();
       String message = String.format("Thread: %s, Processing item with id: %s", threadId, itemId);
       System.out.println(message);
+      //TODO: Integrate logging
 
       //TODO: Logic to filter out items which is being retried without a delay
 
