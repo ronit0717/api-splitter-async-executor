@@ -3,6 +3,7 @@ package com.javatechie.spring.batch.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.javatechie.spring.batch.enumeration.BatchRequestItemExecutionStatus;
 import com.javatechie.spring.batch.enumeration.HttpRequestMethod;
+import com.javatechie.spring.batch.enumeration.RequestType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,7 @@ import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Lob;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -41,34 +43,23 @@ public class BatchRequestEntityItem {
    @Column(nullable = false)
    private long batchRequestId; //Foreign Key
 
-   @Column(length = 10, nullable = false)
-   @Enumerated(value = EnumType.STRING)
-   private HttpRequestMethod httpRequestMethod;
-
-   @Column(length = 4096, nullable = false)
-   private String httpRequestUri;
-
-   @Column(columnDefinition = "TEXT")
-   private String httpRequestHeader;
-
    @Column
    private Integer retryDelay;
 
-   @Column(columnDefinition = "TEXT", nullable = false)
-   private String httpRequestBody;
+   @Column(nullable = false)
+   private String requestType;
+
+   @Lob
+   @Column(columnDefinition = "BLOB", nullable = false)
+   private byte[] request;
+
+   @Lob
+   @Column(columnDefinition = "BLOB")
+   private byte[] response;
 
    @Column(name = "status", length = 15, nullable = false)
    @Enumerated(value = EnumType.STRING)
    private BatchRequestItemExecutionStatus batchRequestItemExecutionStatus;
-
-   @Column(length = 3)
-   private String httpResponseCode;
-
-   @Column(columnDefinition = "TEXT")
-   private String httpResponseHeader;
-
-   @Column(columnDefinition = "TEXT")
-   private String httpResponseBody;
 
    @Column(nullable = false, updatable = false)
    @Temporal(TemporalType.TIMESTAMP)

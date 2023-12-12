@@ -3,7 +3,7 @@ package com.javatechie.spring.batch.controller;
 import com.javatechie.spring.batch.dto.SampleRequest;
 import com.javatechie.spring.batch.dto.SampleResponse;
 import com.javatechie.spring.batch.entity.BatchRequestEntity;
-import com.javatechie.spring.batch.service.SampleBulkService;
+import com.javatechie.spring.batch.service.impl.SampleBulkService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

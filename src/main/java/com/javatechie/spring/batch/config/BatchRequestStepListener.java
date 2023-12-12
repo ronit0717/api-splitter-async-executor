@@ -66,6 +66,7 @@ public class BatchRequestStepListener implements StepExecutionListener {
          if (optionalBatchRequestEntity.isPresent()) {
             BatchRequestEntity batchRequestEntity = optionalBatchRequestEntity.get();
             batchRequestEntity.setBatchRequestExecutionStatus(status);
+            batchRequestEntity.setLocked(false); //Unlock the batch request
             batchRequestRepository.save(batchRequestEntity);
          }
          //TODO: Callback logic

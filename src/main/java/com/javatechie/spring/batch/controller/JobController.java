@@ -1,19 +1,10 @@
 package com.javatechie.spring.batch.controller;
 
 import com.javatechie.spring.batch.dto.BatchResponse;
-import com.javatechie.spring.batch.service.JobExplorerService;
-import com.javatechie.spring.batch.service.JobRetryService;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.JobParametersInvalidException;
-import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
-import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
-import org.springframework.batch.core.repository.JobRestartException;
+import com.javatechie.spring.batch.entity.BatchRequestEntity;
+import com.javatechie.spring.batch.service.impl.JobExecutionService;
+import com.javatechie.spring.batch.service.impl.JobService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,15 +19,15 @@ import java.util.Date;
 public class JobController {
 
    @Autowired
-   private JobExplorerService jobExplorerService;
+   private JobService jobService;
 
    @Autowired
-   private JobRetryService jobRetryService;
+   private JobExecutionService jobExecutionService;
 
    @GetMapping("status")
    public String getJobData(@RequestParam("executionId") long id) {
 
-      return jobExplorerService.getJobExecutionStatusByJobId(id);
+      return jobService.getJobExecutionStatusByJobId(id);
    }
 
    @GetMapping("test")
@@ -48,15 +39,16 @@ public class JobController {
    @GetMapping("details")
    public ResponseEntity<BatchResponse> getJobDetailsByJobId(@RequestParam("batch_id") long id) {
 
-      BatchResponse response = jobExplorerService.getJobDetailsByJobId(id);
+      BatchResponse response = jobService.getJobDetailsByJobId(id);
       return ResponseEntity.ok(response);
    }
 
-   @PostMapping("retry")
-   public ResponseEntity<String> retryJob() {
+   //TODO: This will be triggered using scheduler
+   @PostMapping
+   public ResponseEntity<String> executeJob() {
 
-      JobExecution jobExecution = jobRetryService.processRetryBatch();
-      Long jobExecutionId = jobExecution == null ? null : jobExecution.getJobId();
-      return ResponseEntity.ok("Job retried successfully. Job ID: " + jobExecutionId);
+      BatchRequestEntity batchRequestEntity = jobExecutionService.executeBatchRequest();
+      Long jobExecutionId = batchRequestEntity == null ? null : batchRequestEntity.getJobExecutionId();
+      return ResponseEntity.ok("Job with execution ID: " + jobExecutionId + " has been submitted for processing.");
    }
 }

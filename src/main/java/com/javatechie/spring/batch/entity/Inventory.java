@@ -1,8 +1,7 @@
 package com.javatechie.spring.batch.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.javatechie.spring.batch.enumeration.BatchRequestExecutionStatus;
-import com.javatechie.spring.batch.enumeration.BatchRequestItemExecutionStatus;
+import com.javatechie.spring.batch.dto.CreateInventoryRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,8 +13,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EntityListeners;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -25,36 +22,48 @@ import javax.persistence.TemporalType;
 import java.util.Date;
 
 @Entity
-@Table(name = "batch_requests")
+@Table(name = "inventories")
 @EntityListeners(AuditingEntityListener.class)
 @JsonIgnoreProperties(value = {"createdOn", "updatedOn"}, allowGetters = true)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class BatchRequestEntity {
+public class Inventory {
 
-   @Id
-   @GeneratedValue(strategy = GenerationType.IDENTITY)
-   private long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private long id;
 
-   private Long jobExecutionId;
+    @Column(nullable = false)
+    private String grn;
 
-   @Column(name = "status", length = 15, nullable = false)
-   @Enumerated(value = EnumType.STRING)
-   private BatchRequestExecutionStatus batchRequestExecutionStatus;
+    @Column(nullable = false)
+    private int atp;
 
-   @Column(name = "is_locked", nullable = false)
-   private boolean isLocked;
+    @Column(nullable = false)
+    private boolean inTransit;
 
-   @Column(nullable = false, updatable = false)
-   @Temporal(TemporalType.TIMESTAMP)
-   @CreatedDate
-   private Date createdOn;
+    @Column(nullable = false)
+    private int quantity;
 
-   @Column(nullable = false)
-   @Temporal(TemporalType.TIMESTAMP)
-   @LastModifiedDate
-   private Date updatedOn;
+    @Column(nullable = false, updatable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @CreatedDate
+    private Date createdOn;
+
+    @Column(nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @LastModifiedDate
+    private Date updatedOn;
+
+    public Inventory(String grn, int atp, boolean inTransit) {
+
+        this.grn = grn;
+        this.atp = atp;
+        this.inTransit = inTransit;
+        this.quantity = 1;
+    }
 
 }

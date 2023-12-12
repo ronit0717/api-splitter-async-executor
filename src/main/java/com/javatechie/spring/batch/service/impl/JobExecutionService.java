@@ -1,8 +1,9 @@
-package com.javatechie.spring.batch.service;
+package com.javatechie.spring.batch.service.impl;
 
 import com.javatechie.spring.batch.dto.BatchRequest;
 import com.javatechie.spring.batch.entity.BatchRequestEntity;
 import com.javatechie.spring.batch.entity.BatchRequestEntityItem;
+import com.javatechie.spring.batch.enumeration.BatchRequestExecutionStatus;
 import com.javatechie.spring.batch.repository.BatchRequestItemRepository;
 import com.javatechie.spring.batch.repository.BatchRequestRepository;
 import org.springframework.batch.core.Job;
@@ -16,39 +17,67 @@ import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteExcep
 import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
-public class BatchService {
+public class JobExecutionService {
 
    @Autowired
    private BatchRequestRepository batchRequestRepository;
 
    @Autowired
    private BatchRequestItemRepository batchRequestItemRepository;
-
    @Autowired
    @Qualifier("batchJobLauncher")
    private JobLauncher jobLauncher;
    @Autowired
-   @Qualifier("batchJob")
+   @Qualifier("bulkProcessingJob")
    private Job job;
 
    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-   public BatchRequestEntity process(BatchRequest batchRequest) {
-
-      BatchRequestEntity batchRequestEntity =  batchRequestRepository.save(batchRequest.getBatchRequestEntity());
-      for (BatchRequestEntityItem item : batchRequest.getBatchRequestEntityItems()) {
-         item.setBatchRequestId(batchRequestEntity.getId());
+   public BatchRequestEntity executeBatchRequest() {
+      //Find batchRequestEntities with status as IN PROGRESS SORTED BY id ASC LIMIT 10
+      Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+      Page<BatchRequestEntity> batchRequestEntities =
+            batchRequestRepository.findAllByBatchRequestExecutionStatusAndIsLocked(
+            BatchRequestExecutionStatus.IN_PROGRESS, false, pageable);
+      if (batchRequestEntities.isEmpty()) {
+         return null;
       }
-      batchRequestItemRepository.saveAll(batchRequest.getBatchRequestEntityItems());
+      BatchRequestEntity batchRequestEntity = selectAndLockBatchRequestEntityForExecution(
+            batchRequestEntities.getContent());
+
       long jobExecutionId = processBatch(batchRequestEntity);
       batchRequestEntity.setJobExecutionId(jobExecutionId);
-      batchRequestEntity = batchRequestRepository.save(batchRequest.getBatchRequestEntity());
+      return batchRequestRepository.save(batchRequestEntity);
+   }
+
+   private BatchRequestEntity selectAndLockBatchRequestEntityForExecution(List<BatchRequestEntity> batchRequestEntities) {
+      final int MAX_RETRY_COUNT = 10;
+      Set<Integer> processedIndex = new HashSet<>();
+      int retryCount = 0;
+      BatchRequestEntity batchRequestEntity = null;
+      while (retryCount < MAX_RETRY_COUNT) {
+         int randomIndex = (int) (Math.random() * batchRequestEntities.size());
+         batchRequestEntity = batchRequestEntities.get(randomIndex);
+         batchRequestEntity.setLocked(true);
+         batchRequestEntity = batchRequestRepository.save(batchRequestEntity); //TODO: Logic to prevent dirty write
+         if (batchRequestEntity.isLocked()) {
+            break;
+         } else {
+            retryCount++;
+         }
+      }
       return batchRequestEntity;
    }
 
